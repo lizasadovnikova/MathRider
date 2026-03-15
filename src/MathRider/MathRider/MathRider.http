@@ -1,0 +1,6 @@
+@MathRider_HostAddress = http://localhost:5140
+
+GET {{MathRider_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
