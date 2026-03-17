@@ -3,20 +3,20 @@
   "WorkspaceRootPath": "C:\\\u041A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\MathRider\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|c:\\\u043A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\mathrider\\mathrider\\controllers\\levelscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|solutionrelative:mathrider\\controllers\\levelscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|c:\\\u043A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\mathrider\\mathrider\\controllers\\levelelementscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|solutionrelative:mathrider\\controllers\\levelelementscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|c:\\\u043A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\mathrider\\mathrider\\models\\level.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|solutionrelative:mathrider\\models\\level.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|c:\\\u043A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\mathrider\\mathrider\\models\\levelelement.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|solutionrelative:mathrider\\models\\levelelement.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|c:\\\u043A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\mathrider\\mathrider\\controllers\\levelscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|solutionrelative:mathrider\\controllers\\levelscontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|c:\\\u043A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\mathrider\\mathrider\\models\\level.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|solutionrelative:mathrider\\models\\level.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{FDF4F515-06C6-4B26-ADE6-D771BEEB5C8F}|MathRider\\MathRider.csproj|c:\\\u043A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\mathrider\\mathrider\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -70,19 +70,20 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 6,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "LevelElementsController.cs",
               "DocumentMoniker": "C:\\\u041A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\MathRider\\MathRider\\Controllers\\LevelElementsController.cs",
               "RelativeDocumentMoniker": "MathRider\\Controllers\\LevelElementsController.cs",
               "ToolTip": "C:\\\u041A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\MathRider\\MathRider\\Controllers\\LevelElementsController.cs",
               "RelativeToolTip": "MathRider\\Controllers\\LevelElementsController.cs",
-              "ViewState": "AgIAAD8AAAAAAAAAAAAYwBoAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAG4AAAAAAAAAAAAgwBoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-13T15:04:11.36Z"
+              "WhenOpened": "2026-03-13T15:04:11.36Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
@@ -110,7 +111,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 1,
               "Title": "LevelElement.cs",
               "DocumentMoniker": "C:\\\u041A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\MathRider\\MathRider\\Models\\LevelElement.cs",
               "RelativeDocumentMoniker": "MathRider\\Models\\LevelElement.cs",
@@ -146,16 +147,15 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "LevelsController.cs",
               "DocumentMoniker": "C:\\\u041A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\MathRider\\MathRider\\Controllers\\LevelsController.cs",
               "RelativeDocumentMoniker": "MathRider\\Controllers\\LevelsController.cs",
               "ToolTip": "C:\\\u041A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\MathRider\\MathRider\\Controllers\\LevelsController.cs",
               "RelativeToolTip": "MathRider\\Controllers\\LevelsController.cs",
-              "ViewState": "AgIAAC4AAAAAAAAAAAAkwEAAAAAfAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEAAAAAfAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2026-03-12T13:54:08.899Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-12T13:54:08.899Z"
             },
             {
               "$type": "Document",
@@ -171,7 +171,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "Level.cs",
               "DocumentMoniker": "C:\\\u041A\u0443\u0440\u0441\u043E\u0432\u0430\\src\\MathRider\\MathRider\\Models\\Level.cs",
               "RelativeDocumentMoniker": "MathRider\\Models\\Level.cs",
