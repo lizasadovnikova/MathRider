@@ -33,18 +33,4 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
 
-
-/*try
-{
-    app.MapControllers();
-}
-catch (System.Reflection.ReflectionTypeLoadException ex)
-{
-    foreach (var loaderEx in ex.LoaderExceptions)
-    {
-        Console.WriteLine("—’Œ¬¿Õ¿ œŒÃ»À ¿: " + loaderEx?.Message);
-    }
-    throw;
-}*/
-
 app.Run();
