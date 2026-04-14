@@ -16,23 +16,60 @@ namespace MathRider.Controllers
             _context = context;
         }
 
-        // GET: api/levels
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Level>>> GetLevels()
+        // GET: api/levels/official
+        [HttpGet("official")]
+        public async Task<IActionResult> GetOfficialLevels()
         {
-            return await _context.Levels
-                .Include(l => l.Elements)
-                .ToListAsync();
+            var levels = await _context.Levels
+                                       .Include(l => l.Creator)
+                                       .Include(l => l.Elements)
+                                       .Where(l => l.Creator.Role == "Admin")
+                                       .ToListAsync();
+
+            return Ok(levels);
         }
 
-        // POST: api/levels
+        // GET: api/levels/sandbox
+        [HttpGet("sandbox")]
+        public async Task<IActionResult> GetSandboxLevels()
+        {
+            var levels = await _context.Levels
+                                       .Include(l => l.Creator)
+                                       .Where(l => l.Creator.Role != "Admin")
+                                       .Select(l => new {
+                                           l.Id,
+                                           l.Name,
+                                           AuthorName = l.Creator.Username
+                                       })
+                                       .ToListAsync();
+            return Ok(levels);
+        }
+
+        // GET: api/levels/5
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Level>> GetLevel(int id)
+        {
+            var level = await _context.Levels
+                                       .Include(l => l.Elements)
+                                       .FirstOrDefaultAsync(l => l.Id == id);
+
+            if (level == null)
+            {
+                return NotFound("Рівень не знайдено.");
+            }
+
+            return level;
+        }
+
         [HttpPost]
         public async Task<ActionResult<Level>> PostLevel(Level level)
         {
+            level.Creator = null;
+
             _context.Levels.Add(level);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetLevels), new { id = level.Id }, level);
+            return CreatedAtAction(nameof(GetLevel), new { id = level.Id }, level);
         }
 
         // PUT: api/levels/5
@@ -43,6 +80,8 @@ namespace MathRider.Controllers
             {
                 return BadRequest("ID в URL не збігається з ID в тілі запиту.");
             }
+
+            level.Creator = null;
 
             _context.Entry(level).State = EntityState.Modified;
 

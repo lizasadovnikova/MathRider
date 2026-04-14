@@ -4,8 +4,12 @@ import ControlPanel from './ControlPanel.jsx';
 import CanvasRenderer from './CanvasRenderer.jsx';
 import '../styles/GameBoard.css';
 
-const GameBoard = ({ level }) => {
+const GameBoard = ({ level, onLevelComplete }) => {
   const canvasRef = useRef(null);
+  const isPausedRef = useRef(false);
+  const activeStarsRef = useRef([]); 
+  const [starsCollected, setStarsCollected] = useState(0);
+  const [totalStars, setTotalStars] = useState(0);
   const CANVAS_WIDTH = 1000; 
   const CANVAS_HEIGHT = 600; 
 
@@ -26,30 +30,60 @@ const GameBoard = ({ level }) => {
   const [carT, setCarT] = useState(0); 
   const [isRacing, setIsRacing] = useState(false); 
   const [carAngle, setCarAngle] = useState(0); 
+  const [crashMessage, setCrashMessage] = useState(null);
 
   useEffect(() => {
     if (level) {
-      const maxMathX = Math.max(Math.abs(level.startPosX), Math.abs(level.finishPosX));
-      const maxMathY = Math.max(Math.abs(level.startPosY), Math.abs(level.finishPosY));
-      setScale(Math.max(0.1, Math.min(maxMathX > 0 ? 400 / maxMathX : 1, maxMathY > 0 ? 200 / maxMathY : 1, 4)));
+      let maxMathX = Math.max(Math.abs(level.startPosX), Math.abs(level.finishPosX));
+      let maxMathY = Math.max(Math.abs(level.startPosY), Math.abs(level.finishPosY));
+
+      if (level.elements) {
+        level.elements.forEach(el => {
+          maxMathX = Math.max(maxMathX, Math.abs(el.posX));
+          maxMathY = Math.max(maxMathY, Math.abs(el.posY));
+        });
+      }
+
+      const calculatedScaleX = maxMathX > 0 ? (CANVAS_WIDTH * 0.4) / maxMathX : 1;
+      const calculatedScaleY = maxMathY > 0 ? (CANVAS_HEIGHT * 0.4) / maxMathY : 1;
+      
+      setScale(Math.max(0.01, Math.min(calculatedScaleX, calculatedScaleY, 4)));
       setOffset({ x: 0, y: 0 }); 
       setCarPos({ x: level.startPosX, y: level.startPosY });
       setCarT(0);
       setCarAngle(0); 
       setQueuedTrackId(null);
+      const levelStars = level.elements ? level.elements.filter(e => e.type === 'Star') : [];
+      activeStarsRef.current = [...levelStars];
+      setTotalStars(levelStars.length);
+      setStarsCollected(0);
     }
-  }, [level]); 
+  }, [level]);
 
   const handleAddFormula = () => { if (formulas.length < 5) setFormulas([...formulas, { id: Date.now(), type: 'standard', textX: 't', textY: '' }]); };
   const handleRemoveFormula = (id) => {
     if (formulas.length === 1) return;
     const newFormulas = formulas.filter(f => f.id !== id);
     setFormulas(newFormulas);
-    if (activeTrackId === id) { setActiveTrackId(newFormulas[0].id); setIsReadyToRace(false); }
+    setDrawnFormulas(prevDrawn => prevDrawn.filter(f => f.id !== id));
+
+    if (activeTrackId === id) { 
+      setActiveTrackId(newFormulas[0].id); 
+      setIsReadyToRace(false); 
+    }
     if (queuedTrackId === id) setQueuedTrackId(null);
   };
   const handleFormulaChange = (id, field, newText) => setFormulas(formulas.map(f => f.id === id ? { ...f, [field]: newText } : f));
-  const handleFormulaTypeChange = (id, newType) => setFormulas(formulas.map(f => f.id === id ? { ...f, type: newType } : f));
+  const handleFormulaTypeChange = (id, newType) => {
+    if (newType === 'parametric') {
+      const currentParametricCount = formulas.filter(f => f.type === 'parametric' && f.id !== id).length;
+      if (currentParametricCount >= 2) {
+        alert("Максимум 2 параметричні функції! Використовуйте класичні рівняння y=f(x).");
+        return;
+      }
+    }
+    setFormulas(formulas.map(f => f.id === id ? { ...f, type: newType } : f));
+  };
 
   const handleDrawClick = () => {
     try {
@@ -114,21 +148,38 @@ const GameBoard = ({ level }) => {
     }
   };
 
-  const handleStartRace = () => { setCarPos({ x: level.startPosX, y: level.startPosY }); setCarT(0); setCarAngle(0); setQueuedTrackId(null); setIsRacing(true); };
-  const handleStopRace = () => { setIsRacing(false); setCarPos({ x: level.startPosX, y: level.startPosY }); setCarT(0); setCarAngle(0); setQueuedTrackId(null); };
+  const handleStartRace = () => { 
+    setCarPos({ x: level.startPosX, y: level.startPosY }); 
+    setCarT(0); 
+    setCarAngle(0); 
+    setQueuedTrackId(null); 
+    setCrashMessage(null);
+    isPausedRef.current = false;
+    setIsRacing(true); 
+  };
+  
+  const handleStopRace = () => { 
+    setIsRacing(false); 
+    setCarPos({ x: level.startPosX, y: level.startPosY }); 
+    setCarT(0); 
+    setCarAngle(0); 
+    setQueuedTrackId(null); 
+    setCrashMessage(null);
+    isPausedRef.current = false;
+  };
 
-  useEffect(() => {
+ useEffect(() => {
     if (!isRacing || drawnFormulas.length === 0 || !level) return;
 
     let animationFrameId;
-    let keepRacing = true; 
+    let keepRacing = true;
     
     const activeF = drawnFormulas.find(f => f.id === activeTrackId);
     if (!activeF) return;
     
     const BASE_SPEED = (level.enginePower || 5) * 0.8; 
-    const GRAVITY_FACTOR = BASE_SPEED * 0.7;
-    const EPSILON = 0.001;
+    const GRAVITY_FACTOR = BASE_SPEED * 0.7; 
+    const EPSILON = 0.001; 
     
     let currentX = carPos.x; 
     let currentY = carPos.y;
@@ -139,6 +190,12 @@ const GameBoard = ({ level }) => {
 
     const renderLoop = () => {
       if (!keepRacing) return;
+
+      if (isPausedRef.current) {
+        animationFrameId = requestAnimationFrame(renderLoop);
+        return;
+      }
+
       let nextX, nextY, mathNextX, mathNextY;
 
       try {
@@ -146,11 +203,9 @@ const GameBoard = ({ level }) => {
           const y1 = currentY;
           const y2 = activeF.compiledY.evaluate({ x: currentX + EPSILON });
           const slope = (y2 - y1) / EPSILON;
-          
           const sinTheta = (slope / Math.sqrt(1 + slope * slope)) * currentDirectionXForStandard;
           
           const currentSpeed = Math.max(BASE_SPEED * 0.2, BASE_SPEED - GRAVITY_FACTOR * sinTheta);
-          
           const dx_step = (currentSpeed / Math.sqrt(1 + slope * slope)) * currentDirectionXForStandard;
           
           mathNextX = currentX + dx_step;
@@ -158,35 +213,43 @@ const GameBoard = ({ level }) => {
           
           nextX = mathNextX;
           nextY = mathNextY;
-        } else {
-          const px1 = currentX;
-          const py1 = currentY;
-          const px2 = activeF.compiledX.evaluate({ t: currentT + EPSILON });
-          const py2 = activeF.compiledY.evaluate({ t: currentT + EPSILON });
-          
-          const dx_dt = (px2 - px1) / EPSILON;
-          const dy_dt = (py2 - py1) / EPSILON;
-          const derivativeLength = Math.hypot(dx_dt, dy_dt);
+        }
+        if (level.elements && level.elements.length > 0) {
+          const hitWall = level.elements.some(el => {
+            if (el.type.toLowerCase() !== 'obstacle') return false; 
+            
+            const obsX = Number(el.posX);
+            const obsY = Number(el.posY);
+            const obsW = Number(el.width);
+            const obsH = Number(el.height);
 
-          let sinTheta = 0;
-          if (derivativeLength > 0.0001) {
-            sinTheta = dy_dt / derivativeLength;
+            const inX = nextX >= obsX && nextX <= (obsX + obsW);
+            const inY = nextY >= obsY && nextY <= (obsY + obsH);
+
+            // console.log(`Машинка: X=${nextX.toFixed(2)}, Y=${nextY.toFixed(2)} | Стіна: X[${obsX}..${obsX+obsW}], Y[${obsY}..${obsY+obsH}] | inX: ${inX}, inY: ${inY}`);
+
+            return inX && inY;
+          });
+
+          if (hitWall) {
+            cancelAnimationFrame(animationFrameId);
+            isPausedRef.current = true;
+            
+            setCarPos({ x: currentX, y: currentY }); 
+            
+            setTimeout(() => {
+              alert("Аварія! Ви врізалися в перешкоду.");
+              setIsRacing(false);
+              handleStopRace();
+            }, 50); 
+            
+            return;
           }
-
-          const currentSpeed = Math.max(BASE_SPEED * 0.2, BASE_SPEED - GRAVITY_FACTOR * sinTheta);
-          
-          const dt_step = derivativeLength > 0.0001 ? (currentSpeed / derivativeLength) : 0.01;
-
-          currentT += dt_step;
-          mathNextX = activeF.compiledX.evaluate({ t: currentT });
-          mathNextY = activeF.compiledY.evaluate({ t: currentT });
-          
-          nextX = mathNextX;
-          nextY = mathNextY;
         }
 
         const dx = nextX - currentX;
         const dy = nextY - currentY;
+        
         if (Math.hypot(dx, dy) > 0.001) {
           currentAngle = Math.atan2(-dy, dx); 
           if (activeF.type === 'standard') {
@@ -194,9 +257,26 @@ const GameBoard = ({ level }) => {
           }
         }
 
-        if (queuedTrackId) {
+        if (activeStarsRef.current.length > 0) {
+          const HIT_RADIUS = 15 / scale; 
+          const initialCount = activeStarsRef.current.length;
+
+          activeStarsRef.current = activeStarsRef.current.filter(star => {
+            const distToStar = Math.hypot(nextX - star.posX, nextY - star.posY);
+            return distToStar > HIT_RADIUS; 
+          });
+
+          if (activeStarsRef.current.length < initialCount) {
+            setStarsCollected(totalStars - activeStarsRef.current.length);
+          }
+        }
+
+        if (queuedTrackId && !isPausedRef.current) {
           const queuedF = drawnFormulas.find(f => f.id === queuedTrackId);
           if (queuedF) {
+            
+            const JUMP_HITBOX = 15 / scale; 
+            
             let dist = Infinity;
             let queuedNextT = 0;
             let newDirectionX = currentDirectionXForStandard;
@@ -205,16 +285,19 @@ const GameBoard = ({ level }) => {
               const qY = queuedF.compiledY.evaluate({ x: nextX });
               dist = Math.abs(nextY - qY);
               
-              if (dist <= 4 && activeF.type === 'parametric') {
+              if (dist <= JUMP_HITBOX && activeF.type === 'parametric') {
                 const pastX = activeF.compiledX.evaluate({ t: Math.max(0, currentT - 0.05) });
                 newDirectionX = nextX < pastX ? -1 : 1; 
               }
             } else if (queuedF.type === 'parametric') {
               let minDistSq = Infinity;
               for (let t = 0; t <= 300; t += 0.05) {
-                try {
-                  const px = queuedF.compiledX.evaluate({ t });
-                  const py = queuedF.compiledY.evaluate({ t });
+              try {
+                const px = queuedF.compiledX.evaluate({ t });
+                const py = queuedF.compiledY.evaluate({ t });
+                
+                if (isNaN(px) || isNaN(py)) {
+                }
                   const deltaX = px - nextX;
                   const deltaY = py - nextY;
                   const dSq = deltaX * deltaX + deltaY * deltaY;
@@ -227,17 +310,47 @@ const GameBoard = ({ level }) => {
               dist = Math.sqrt(minDistSq);
             }
 
-            if (dist <= 4) {
-              setQueuedTrackId(null);
-              setActiveTrackId(queuedTrackId);
-              
-              if (queuedF.type === 'parametric') {
-                currentT = queuedNextT; 
-                setCarT(queuedNextT);
-                nextX = queuedF.compiledX.evaluate({ t: currentT });
-                nextY = queuedF.compiledY.evaluate({ t: currentT });
+            if (dist <= JUMP_HITBOX) {
+              let newAngle = 0;
+
+              if (queuedF.type === 'standard') {
+                const y1 = queuedF.compiledY.evaluate({ x: nextX });
+                const y2 = queuedF.compiledY.evaluate({ x: nextX + EPSILON });
+                const math_dy = y2 - y1;
+                newAngle = Math.atan2(-(math_dy * newDirectionX), EPSILON * newDirectionX);
+              } else if (queuedF.type === 'parametric') {
+                const px1 = queuedF.compiledX.evaluate({ t: queuedNextT });
+                const py1 = queuedF.compiledY.evaluate({ t: queuedNextT });
+                const px2 = queuedF.compiledX.evaluate({ t: queuedNextT + EPSILON });
+                const py2 = queuedF.compiledY.evaluate({ t: queuedNextT + EPSILON });
+                newAngle = Math.atan2(-(py2 - py1), px2 - px1);
+              }
+
+              let angleDiff = Math.abs(currentAngle - newAngle);
+              if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff; 
+
+              const MAX_ANGLE_DEG = 85;
+              const MAX_ANGLE_RAD = MAX_ANGLE_DEG * Math.PI / 180;
+
+              if (angleDiff > MAX_ANGLE_RAD) {
+                const degrees = (angleDiff * 180 / Math.PI).toFixed(0);
+                
+                isPausedRef.current = true;
+                setQueuedTrackId(null);
+                setCrashMessage(`Стрибок відхилено! Кут занадто різкий (${degrees}° > ${MAX_ANGLE_DEG}).`);
+                
               } else {
-                currentDirectionXForStandard = newDirectionX; 
+                setQueuedTrackId(null);
+                setActiveTrackId(queuedTrackId);
+                
+                if (queuedF.type === 'parametric') {
+                  currentT = queuedNextT; 
+                  setCarT(queuedNextT);
+                  nextX = queuedF.compiledX.evaluate({ t: currentT });
+                  nextY = queuedF.compiledY.evaluate({ t: currentT });
+                } else {
+                  currentDirectionXForStandard = newDirectionX; 
+                }
               }
             }
           }
@@ -250,10 +363,26 @@ const GameBoard = ({ level }) => {
         }
 
         const distToFinish = Math.hypot(nextX - level.finishPosX, nextY - level.finishPosY);
-        if (distToFinish <= 3) {
-          keepRacing = false; setIsRacing(false); setCarPos({ x: level.finishPosX, y: level.finishPosY });
-          setTimeout(() => alert("Фініш! Машинка доїхала до цілі!"), 10);
-          return;
+        
+        const finishRadius = 15 / scale;
+        
+        if (distToFinish <= finishRadius) {
+          if (activeStarsRef.current.length > 0) {
+            keepRacing = false; setIsRacing(false); handleStopRace();
+            setTimeout(() => alert(`Ви доїхали до фінішу, але зібрали не всі зірки! Залишилось: ${activeStarsRef.current.length}.`), 10);
+            return;
+          } else {
+            keepRacing = false; setIsRacing(false); 
+            setCarPos({ x: level.finishPosX, y: level.finishPosY });
+
+            setTimeout(() => {
+              alert("Перемога! Всі зірки зібрано!");
+              if (onLevelComplete) {
+                 onLevelComplete(); 
+              }
+            }, 10);
+            return;
+          }
         }
 
         currentX = nextX;
@@ -269,7 +398,7 @@ const GameBoard = ({ level }) => {
 
     animationFrameId = requestAnimationFrame(renderLoop);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [isRacing, drawnFormulas, activeTrackId, queuedTrackId, level]); 
+  }, [isRacing, drawnFormulas, activeTrackId, queuedTrackId, level]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -314,11 +443,55 @@ const GameBoard = ({ level }) => {
         scale={scale}
         offset={offset}
         level={level}
+        activeStars={activeStarsRef.current}
         drawnFormulas={drawnFormulas}
         activeTrackId={activeTrackId}
         carPos={carPos}
         carAngle={carAngle}
       />
+
+      {crashMessage && (
+        <div style={{
+          position: 'absolute', 
+          top: '20%', 
+          left: '50%', 
+          transform: 'translate(-50%, -50%)',
+          background: 'rgba(244, 67, 54, 0.95)', 
+          color: 'white', 
+          padding: '20px 30px',
+          borderRadius: '10px', 
+          fontSize: '20px', 
+          fontWeight: 'bold', 
+          zIndex: 100,
+          boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '15px'
+        }}>
+          <div>{crashMessage}</div>
+          <button 
+            onClick={() => {
+              isPausedRef.current = false;
+              setCrashMessage(null);
+            }}
+            style={{
+              padding: '10px 20px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#F44336',
+              background: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
+            }}
+          >
+            Продовжити рух
+          </button>
+        </div>
+      )}
 
       <canvas 
         ref={canvasRef} 

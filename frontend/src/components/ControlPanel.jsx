@@ -5,9 +5,16 @@ const ControlPanel = ({
   onAddFormula, onRemoveFormula, onDrawClick, error, isReady, isRacing, 
   onStartRace, onStopRace, onSwitchTrack 
 }) => {
+  
+  const currentParametric = formulas.filter(f => f.type === 'parametric').length;
+  const MAX_PARAMETRIC = 2;
+
   return (
     <div className="control-panel">
-      
+      <div style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '10px', color: currentParametric >= MAX_PARAMETRIC ? '#F44336' : '#555' }}>
+        Параметричні криві: {currentParametric} / {MAX_PARAMETRIC}
+      </div>
+
       {formulas.map((f) => {
         const isActive = f.id === activeTrackId;
         const isQueued = f.id === queuedTrackId;
@@ -90,7 +97,7 @@ const ControlPanel = ({
       <div className="action-panel">
         {formulas.length < 5 && (
           <button onClick={onAddFormula} className="btn btn-small btn-add">
-            ➕ Додати графік
+            + Додати графік
           </button>
         )}
         <button onClick={onDrawClick} className="btn btn-text btn-draw">

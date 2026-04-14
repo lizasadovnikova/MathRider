@@ -27,9 +27,9 @@ namespace MathRider.Controllers
 
             if (newElement.Type == "Star")
             {
-                // Примусово ставимо 20x20 для зірок, ігноруючи те, що прийшло в запиті
-                newElement.Width = 20;
-                newElement.Height = 20;
+                // Примусово ставимо 30x30 для зірок, ігноруючи те, що прийшло в запиті
+                newElement.Width = 30;
+                newElement.Height = 30;
             }
             else if (newElement.Type == "Obstacle")
             {

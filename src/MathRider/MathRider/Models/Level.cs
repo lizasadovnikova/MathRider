@@ -10,6 +10,8 @@
         public float FinishPosY { get; set; }
         public double VehicleMass { get; set; }
         public double EnginePower { get; set; }
-        public List<LevelElement> Elements { get; set; } = new();
+        public int UserId { get; set; }
+        public User? Creator { get; set; }
+        public List<LevelElement>? Elements { get; set; } = new();
     }
 }

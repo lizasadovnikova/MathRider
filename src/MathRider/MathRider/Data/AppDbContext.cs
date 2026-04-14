@@ -11,5 +11,15 @@ namespace MathRider.Data
         public DbSet<User> Users { get; set; }
         public DbSet<LevelElement> LevelElements { get; set; }
         public DbSet<Progress> Progresses { get; set; }
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<Level>()
+                .HasOne(l => l.Creator)
+                .WithMany()
+                .HasForeignKey(l => l.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+        }
     }
 }

@@ -11,6 +11,7 @@ const CanvasRenderer = ({
   activeTrackId,
   carPos,
   carAngle,
+  activeStars
 }) => {
   const ORIGIN_X = CANVAS_WIDTH / 2;
   const ORIGIN_Y = CANVAS_HEIGHT / 2;
@@ -84,55 +85,87 @@ const CanvasRenderer = ({
             for (let t = 0; t <= 300; t += stepT) {
               const x = fObj.compiledX.evaluate({ t: t });
               const y = fObj.compiledY.evaluate({ t: t });
-              if (t === 0) ctx.moveTo(toCanvasX(x), toCanvasY(y));
-              else {
+              
+              if (t === 0) {
+                ctx.moveTo(toCanvasX(x), toCanvasY(y));
+              } else {
                 ctx.lineTo(toCanvasX(x), toCanvasY(y));
-                if (t > 3 && Math.hypot(x - startX, y - startY) < 1) break;
+                
+                if (t > 3 && Math.hypot(x - startX, y - startY) < 0.05) {
+                  ctx.lineTo(toCanvasX(startX), toCanvasY(startY));
+                  break;
+                }
               }
             }
           }
+
           ctx.stroke();
           ctx.setLineDash([]);
         } catch (error) {}
       });
     }
 
-    // старт і фініш
-    ctx.fillStyle = '#4CAF50'; ctx.beginPath(); ctx.arc(toCanvasX(level.startPosX), toCanvasY(level.startPosY), 15, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#F44336'; ctx.beginPath(); ctx.arc(toCanvasX(level.finishPosX), toCanvasY(level.finishPosY), 15, 0, Math.PI * 2); ctx.fill();
+    // старт
+    ctx.fillStyle = '#4CAF50'; 
+    ctx.beginPath(); 
+    ctx.arc(toCanvasX(level.startPosX), toCanvasY(level.startPosY), 20, 0, Math.PI * 2); 
+    ctx.fill();
+
+    // фініш
+    ctx.fillStyle = '#F44336'; 
+    ctx.beginPath(); 
+    ctx.arc(toCanvasX(level.finishPosX), toCanvasY(level.finishPosY), 20, 0, Math.PI * 2); 
+    ctx.fill();
 
     // елементи
-    if (level.elements && level.elements.length > 0) {
-      level.elements.forEach(el => {
-        const drawX = toCanvasX(el.posX);
-        if (el.type === 'Star') {
-          ctx.font = '30px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-          ctx.fillText('⭐', drawX, toCanvasY(el.posY));
-        } else if (el.type === 'Obstacle') {
-          ctx.fillStyle = '#607D8B';
-          ctx.fillRect(drawX, toCanvasY(el.posY) - (el.height * scale), el.width * scale, el.height * scale);
-        }
-      });
+    if (level.elements) {
+        level.elements.forEach(el => {
+          if (el.type !== 'Star') {
+            ctx.fillStyle = '#607D8B';
+            
+            const obsX = toCanvasX(el.posX); 
+            const obsY = toCanvasY(el.posY) - (el.height * scale);
+            const obsWidth = el.width * scale;
+            const obsHeight = el.height * scale;
+            
+            ctx.fillRect(obsX, obsY, obsWidth, obsHeight);
+          }
+        });
+    }
+    if (activeStars) {
+        activeStars.forEach(star => {
+          const screenX = toCanvasX(star.posX);
+          const screenY = toCanvasY(star.posY);
+          
+          ctx.font = '30px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('⭐', screenX, screenY);
+        });
     }
 
-    // машинка
     ctx.font = '30px Arial';
     ctx.textAlign = 'center';
-    
     ctx.textBaseline = 'bottom';
-    
-    ctx.save();
-    
-    ctx.translate(toCanvasX(carPos.x !== null ? carPos.x : level.startPosX), toCanvasY(carPos.y !== null ? carPos.y : level.startPosY));
-    
-    ctx.rotate(carAngle);
-    
-    ctx.fillText('=>', 0, 0); 
-    
-    ctx.restore();
 
-  }, [level, drawnFormulas, scale, offset, carPos, activeTrackId, carAngle, CANVAS_WIDTH, CANVAS_HEIGHT]);
+    // машинка
+    if (carPos.x !== null && carPos.y !== null) {
+      ctx.save();
+      
+      ctx.translate(toCanvasX(carPos.x), toCanvasY(carPos.y));
+      ctx.rotate(carAngle);
+      
+      ctx.font = '30px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      
+      ctx.fillStyle = '#d7801c';
+      ctx.fillText('=>', 0, 0); 
+      
+      ctx.restore();
+    }
 
+  }, [level, drawnFormulas, activeStars, scale, offset, carPos, activeTrackId, carAngle, CANVAS_WIDTH, CANVAS_HEIGHT]);
   return null;
 };
 
