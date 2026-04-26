@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 
-export default function Login({ onLoginSuccess }) {
+export default function Login({ onLoginSuccess, onSwitchToRegister }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,7 +15,7 @@ export default function Login({ onLoginSuccess }) {
       password: password
     })
     .then(response => {
-      const { token, userId, role } = response.data;
+      const { token, userId, username, role } = response.data;
       
       localStorage.setItem('mathRider_token', token);
       localStorage.setItem('mathRider_userId', userId);
@@ -40,7 +40,7 @@ export default function Login({ onLoginSuccess }) {
       <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
         <input 
           type="text" 
-          placeholder="Логін (напр. Admin)" 
+          placeholder="Логін" 
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           style={{ padding: '10px', fontSize: '16px' }}
@@ -61,6 +61,17 @@ export default function Login({ onLoginSuccess }) {
           Грати!
         </button>
       </form>
+
+    <div style={{ marginTop: '20px', fontSize: '14px' }}>
+      Вперше у грі? <br/>
+      <button 
+        onClick={onSwitchToRegister} 
+        style={{ background: 'none', color: 'blue', border: 'none', cursor: 'pointer', textDecoration: 'underline', marginTop: '5px' }}
+      >
+        Створити акаунт
+      </button>
+    </div>
+    
     </div>
   );
 }

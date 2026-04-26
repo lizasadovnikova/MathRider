@@ -117,21 +117,33 @@ const CanvasRenderer = ({
     ctx.arc(toCanvasX(level.finishPosX), toCanvasY(level.finishPosY), 20, 0, Math.PI * 2); 
     ctx.fill();
 
+    const drawRotatedRect = (ctx, mathX, mathY, mathW, mathH, angle, color) => {
+      ctx.save();
+      ctx.fillStyle = color;
+
+      const mathCenterX = mathX + mathW / 2;
+      const mathCenterY = mathY + mathH / 2; 
+      const screenCenterX = toCanvasX(mathCenterX);
+      const screenCenterY = toCanvasY(mathCenterY);
+      const screenW = mathW * scale;
+      const screenH = mathH * scale;
+
+      ctx.translate(screenCenterX, screenCenterY);
+      ctx.rotate(((angle || 0) * Math.PI) / 180);
+      ctx.fillRect(-screenW / 2, -screenH / 2, screenW, screenH);
+      
+      ctx.restore();
+    };
+
     // елементи
     if (level.elements) {
         level.elements.forEach(el => {
           if (el.type !== 'Star') {
-            ctx.fillStyle = '#607D8B';
-            
-            const obsX = toCanvasX(el.posX); 
-            const obsY = toCanvasY(el.posY) - (el.height * scale);
-            const obsWidth = el.width * scale;
-            const obsHeight = el.height * scale;
-            
-            ctx.fillRect(obsX, obsY, obsWidth, obsHeight);
+            drawRotatedRect(ctx, el.posX, el.posY, el.width, el.height, el.angle, '#795548');
           }
         });
     }
+
     if (activeStars) {
         activeStars.forEach(star => {
           const screenX = toCanvasX(star.posX);

@@ -34,14 +34,11 @@ namespace MathRider.Controllers
         public async Task<IActionResult> GetSandboxLevels()
         {
             var levels = await _context.Levels
-                                       .Include(l => l.Creator)
-                                       .Where(l => l.Creator.Role != "Admin")
-                                       .Select(l => new {
-                                           l.Id,
-                                           l.Name,
-                                           AuthorName = l.Creator.Username
-                                       })
-                                       .ToListAsync();
+                .Include(l => l.Creator)
+                .Include(l => l.Elements)
+                .Where(l => l.Creator.Role != "Admin")
+                .ToListAsync();
+
             return Ok(levels);
         }
 
@@ -61,6 +58,18 @@ namespace MathRider.Controllers
             return level;
         }
 
+        // GET: api/Levels
+        [HttpGet]
+        public async Task<IActionResult> GetAllLevels()
+        {
+            var levels = await _context.Levels
+                .Include(l => l.Elements)
+                .ToListAsync();
+
+            return Ok(levels);
+        }
+
+        // POST: api/levels/5
         [HttpPost]
         public async Task<ActionResult<Level>> PostLevel(Level level)
         {

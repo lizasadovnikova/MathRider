@@ -26,22 +26,28 @@ namespace MathRider.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(UserDto request)
         {
-            if (await _context.Users.AnyAsync(u => u.Username == request.Username))
-                return BadRequest("Користувач з таким іменем вже існує.");
+            if (request.Password.Length < 8 || !request.Password.Any(char.IsLetter))
+            {
+                return BadRequest("Пароль має містити мінімум 8 символів та хоча б одну літеру.");
+            }
 
-            string passwordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            bool userExists = await _context.Users.AnyAsync(u => u.Username == request.Username);
+            if (userExists)
+            {
+                return BadRequest("Користувач з таким іменем вже існує.");
+            }
 
             var newUser = new User
             {
                 Username = request.Username,
-                PasswordHash = passwordHash,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
                 Role = "User"
             };
 
             _context.Users.Add(newUser);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Реєстрація пройшла успішно!" });
+            return Ok("Успішна реєстрація");
         }
 
         [HttpPost("login")]

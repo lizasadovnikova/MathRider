@@ -4,6 +4,32 @@ import ControlPanel from './ControlPanel.jsx';
 import CanvasRenderer from './CanvasRenderer.jsx';
 import '../styles/GameBoard.css';
 
+const isCollidingWithRotatedRect = (carX, carY, carRadius, obs) => {
+  const obsX = Number(obs.posX);
+  const obsY = Number(obs.posY);
+  const obsW = Number(obs.width);
+  const obsH = Number(obs.height);
+  const angle = Number(obs.angle) || 0;
+
+  const cx = obsX + obsW / 2;
+  const cy = obsY + obsH / 2;
+
+  const dx = carX - cx;
+  const dy = carY - cy;
+
+  const angleRad = angle * (Math.PI / 180);
+  const localX = dx * Math.cos(angleRad) - dy * Math.sin(angleRad);
+  const localY = dx * Math.sin(angleRad) + dy * Math.cos(angleRad);
+
+  const closestX = Math.max(-obsW / 2, Math.min(localX, obsW / 2));
+  const closestY = Math.max(-obsH / 2, Math.min(localY, obsH / 2));
+
+  const distanceX = localX - closestX;
+  const distanceY = localY - closestY;
+
+  return (distanceX * distanceX + distanceY * distanceY) < (carRadius * carRadius);
+};
+
 const GameBoard = ({ level, onLevelComplete }) => {
   const canvasRef = useRef(null);
   const isPausedRef = useRef(false);
@@ -213,38 +239,37 @@ const GameBoard = ({ level, onLevelComplete }) => {
           
           nextX = mathNextX;
           nextY = mathNextY;
+        } 
+        else if (activeF.type === 'parametric') {
+          const t_step = BASE_SPEED * 0.01; 
+          const nextT = currentT + t_step;
+          nextX = activeF.compiledX.evaluate({ t: nextT });
+          nextY = activeF.compiledY.evaluate({ t: nextT });
+          currentT = nextT;
         }
-        if (level.elements && level.elements.length > 0) {
-          const hitWall = level.elements.some(el => {
-            if (el.type.toLowerCase() !== 'obstacle') return false; 
-            
-            const obsX = Number(el.posX);
-            const obsY = Number(el.posY);
-            const obsW = Number(el.width);
-            const obsH = Number(el.height);
 
-            const inX = nextX >= obsX && nextX <= (obsX + obsW);
-            const inY = nextY >= obsY && nextY <= (obsY + obsH);
+        const CAR_HITBOX_RADIUS = 2;
 
-            // console.log(`Машинка: X=${nextX.toFixed(2)}, Y=${nextY.toFixed(2)} | Стіна: X[${obsX}..${obsX+obsW}], Y[${obsY}..${obsY+obsH}] | inX: ${inX}, inY: ${inY}`);
-
-            return inX && inY;
-          });
-
-          if (hitWall) {
-            cancelAnimationFrame(animationFrameId);
-            isPausedRef.current = true;
-            
-            setCarPos({ x: currentX, y: currentY }); 
-            
-            setTimeout(() => {
-              alert("Аварія! Ви врізалися в перешкоду.");
-              setIsRacing(false);
-              handleStopRace();
-            }, 50); 
-            
-            return;
+        const hasCrashed = level.elements.some(el => {
+          if (el.type.toLowerCase() === 'obstacle') {
+            return isCollidingWithRotatedRect(nextX, nextY, CAR_HITBOX_RADIUS, el);
           }
+          return false;
+        });
+
+        if (hasCrashed) {
+          cancelAnimationFrame(animationFrameId);
+          isPausedRef.current = true;
+          
+          setCarPos({ x: currentX, y: currentY }); 
+          
+          setTimeout(() => {
+            alert("Аварія! Ви врізалися в перешкоду.");
+            setIsRacing(false);
+            handleStopRace();
+          }, 50); 
+          
+          return; 
         }
 
         const dx = nextX - currentX;
