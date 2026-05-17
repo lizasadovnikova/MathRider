@@ -1,8 +1,10 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useLayoutEffect } from 'react';
 import * as math from 'mathjs';
 import ControlPanel from './ControlPanel.jsx';
 import CanvasRenderer from './CanvasRenderer.jsx';
 import '../styles/GameBoard.css';
+import ExplosionManager from './ExplosionManager.jsx';
+import AlertModal from './AlertModal.jsx';
 
 const isCollidingWithRotatedRect = (carX, carY, carRadius, obs) => {
   const obsX = Number(obs.posX);
@@ -31,13 +33,18 @@ const isCollidingWithRotatedRect = (carX, carY, carRadius, obs) => {
 };
 
 const GameBoard = ({ level, onLevelComplete }) => {
+  const startTimeRef = useRef(null);
   const canvasRef = useRef(null);
   const isPausedRef = useRef(false);
-  const activeStarsRef = useRef([]); 
+  const activeStarsRef = useRef([]);
+  const [displayStars, setDisplayStars] = useState(() => {
+    return level ? level.elements.filter(el => el.type === 'Star') : [];
+  });
+  const [renderTrigger, setRenderTrigger] = useState(0);
   const [starsCollected, setStarsCollected] = useState(0);
   const [totalStars, setTotalStars] = useState(0);
   const CANVAS_WIDTH = 1000; 
-  const CANVAS_HEIGHT = 600; 
+  const CANVAS_HEIGHT = 600;
 
   const [formulas, setFormulas] = useState([{ id: Date.now(), type: 'standard', textX: 't', textY: 'x^2 / 50' }]); 
   const [activeTrackId, setActiveTrackId] = useState(formulas[0].id); 
@@ -57,6 +64,52 @@ const GameBoard = ({ level, onLevelComplete }) => {
   const [isRacing, setIsRacing] = useState(false); 
   const [carAngle, setCarAngle] = useState(0); 
   const [crashMessage, setCrashMessage] = useState(null);
+  const [isCrashed, setIsCrashed] = useState(false);
+
+  const [showExplosion, setShowExplosion] = useState(false);
+  const [explosionPosition, setExplosionPosition] = useState({ x: 0, y: 0 });
+  const [speedMultiplier, setSpeedMultiplier] = useState(1);
+
+  const [modalConfig, setModalConfig] = useState({ 
+    isOpen: false, 
+    title: '', 
+    message: '', 
+    type: 'info',
+    onConfirm: null
+  });
+
+  const showCustomAlert = (title, message, type = 'info', onConfirm = null) => {
+    setModalConfig({ isOpen: true, title, message, type, onConfirm });
+  };
+
+  const closeCustomAlert = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }));
+    if (modalConfig.onConfirm) {
+      modalConfig.onConfirm();
+    }
+  };
+  
+  const speedRef = useRef(speedMultiplier);
+
+
+const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, starY, starRadius) => {
+  const dx = starX - carX;
+  const dy = starY - carY;
+
+  const localX = dx * Math.cos(-angleRad) - dy * Math.sin(-angleRad);
+  const localY = dx * Math.sin(-angleRad) + dy * Math.cos(-angleRad);
+
+  const isWithinX = Math.abs(localX) <= (carWidth / 2 + starRadius);
+
+  const isWithinY = Math.abs(localY) <= (carHeight + starRadius);
+
+  return isWithinX && isWithinY;
+};
+
+  useEffect(() => {
+    speedRef.current = speedMultiplier;
+  }, [speedMultiplier]);
+
 
   useEffect(() => {
     if (level) {
@@ -70,10 +123,15 @@ const GameBoard = ({ level, onLevelComplete }) => {
         });
       }
 
+      if (maxMathX < 10) maxMathX = 10;
+      if (maxMathY < 10) maxMathY = 10;
+
       const calculatedScaleX = maxMathX > 0 ? (CANVAS_WIDTH * 0.4) / maxMathX : 1;
       const calculatedScaleY = maxMathY > 0 ? (CANVAS_HEIGHT * 0.4) / maxMathY : 1;
       
-      setScale(Math.max(0.01, Math.min(calculatedScaleX, calculatedScaleY, 4)));
+      const finalScale = Math.max(0.01, Math.min(calculatedScaleX, calculatedScaleY, 10)); 
+  
+      setScale(finalScale);
       setOffset({ x: 0, y: 0 }); 
       setCarPos({ x: level.startPosX, y: level.startPosY });
       setCarT(0);
@@ -85,6 +143,19 @@ const GameBoard = ({ level, onLevelComplete }) => {
       setStarsCollected(0);
     }
   }, [level]);
+
+  const handleRestart = () => {
+    if (!level) return;
+    //isPausedRef.current = true;
+    setIsRacing(false);
+    setCarPos({ x: level.startPosX, y: level.startPosY });
+    setCarAngle(0); 
+    const initialStars = level.elements.filter(el => el.type === 'Star');
+    if (activeStarsRef) activeStarsRef.current = [...initialStars];
+    setStarsCollected(0); 
+    setRenderTrigger(prev => prev + 1); 
+    isPausedRef.current = false;
+  };
 
   const handleAddFormula = () => { if (formulas.length < 5) setFormulas([...formulas, { id: Date.now(), type: 'standard', textX: 't', textY: '' }]); };
   const handleRemoveFormula = (id) => {
@@ -104,7 +175,7 @@ const GameBoard = ({ level, onLevelComplete }) => {
     if (newType === 'parametric') {
       const currentParametricCount = formulas.filter(f => f.type === 'parametric' && f.id !== id).length;
       if (currentParametricCount >= 2) {
-        alert("Максимум 2 параметричні функції! Використовуйте класичні рівняння y=f(x).");
+        showCustomAlert('Максимум 2 параметричні функції!', 'Використовуйте класичні рівняння y=f(x).', 'warning');
         return;
       }
     }
@@ -126,12 +197,12 @@ const GameBoard = ({ level, onLevelComplete }) => {
             if (f.type === 'standard') {
               const startY = compiledY.evaluate({ x: level.startPosX });
               if (Math.abs(level.startPosY - startY) <= 0.5) isMainValid = true;
-              else setValidationError(`Траса має починатися на Y=${level.startPosY}.`);
+              else setValidationError(`Траса має починатися на X=${level.startPosX} Y=${level.startPosY}.`);
             } else {
               const startX = compiledX.evaluate({ t: 0 });
               const startY = compiledY.evaluate({ t: 0 });
               if (Math.abs(level.startPosX - startX) <= 0.5 && Math.abs(level.startPosY - startY) <= 0.5) isMainValid = true;
-              else setValidationError(`Траса має починатися на Y=${level.startPosY}.`);
+              else setValidationError(`Траса має починатися на X=${level.startPosX} Y=${level.startPosY}.`);
             }
           }
         }
@@ -154,7 +225,7 @@ const GameBoard = ({ level, onLevelComplete }) => {
 
   const handleSwitchTrack = (targetId) => {
     const targetDrawn = drawnFormulas.find(f => f.id === targetId);
-    if (!targetDrawn) return alert("Побудуйте траси спочатку!");
+    if (!targetDrawn) return showCustomAlert('Неможливо почати', 'Побудуйте траси спочатку!', 'warning');
 
     if (isRacing) {
       setQueuedTrackId(targetId);
@@ -163,13 +234,13 @@ const GameBoard = ({ level, onLevelComplete }) => {
         const targetY = targetDrawn.compiledY.evaluate({ x: level.startPosX });
         if (Math.abs(level.startPosY - targetY) <= 0.5) {
           setActiveTrackId(targetId); setValidationError(null); setIsReadyToRace(true);
-        } else alert(`Ця траса не підключена до старту!`);
+        } else showCustomAlert('Неможливо почати','Ця траса не підключена до старту!', 'warning');
       } else {
         const startX = targetDrawn.compiledX.evaluate({ t: 0 });
         const startY = targetDrawn.compiledY.evaluate({ t: 0 });
         if (Math.abs(level.startPosX - startX) <= 0.5 && Math.abs(level.startPosY - startY) <= 0.5) {
           setActiveTrackId(targetId); setValidationError(null); setIsReadyToRace(true);
-        } else alert(`Ця траса не підключена до старту!`);
+        } else showCustomAlert('Неможливо почати','Ця траса не підключена до старту!', 'warning');
       }
     }
   };
@@ -181,7 +252,8 @@ const GameBoard = ({ level, onLevelComplete }) => {
     setQueuedTrackId(null); 
     setCrashMessage(null);
     isPausedRef.current = false;
-    setIsRacing(true); 
+    setIsRacing(true);
+    startTimeRef.current = Date.now();
   };
   
   const handleStopRace = () => { 
@@ -194,6 +266,42 @@ const GameBoard = ({ level, onLevelComplete }) => {
     isPausedRef.current = false;
   };
 
+  const handleExplosionEnd = () => {
+    setShowExplosion(false);
+    setIsCrashed(true);
+    setIsRacing(false);
+  };
+
+  const handleRestartAfterCrash = () => {
+    setShowExplosion(false);
+    setIsCrashed(false);
+    handleStopRace();
+
+    if (level && level.elements) {
+      const initialStars = level.elements.filter(e => e.type === 'Star');
+      setActiveStars(initialStars);
+    }
+  };
+
+  const restartLevel = () => {
+    setIsCrashed(false);
+    
+    setCarPos({ x: level.startPosX, y: level.startPosY });
+    
+    const initialStars = level.elements ? level.elements.filter(e => e.type === 'Star') : [];
+    setActiveStars(initialStars);
+  };
+
+
+  const ORIGIN_X = CANVAS_WIDTH / 2;
+  const ORIGIN_Y = CANVAS_HEIGHT / 2;
+  const EFFECTIVE_ORIGIN_X = ORIGIN_X + offset.x;
+  const EFFECTIVE_ORIGIN_Y = ORIGIN_Y + offset.y;
+
+  const toCanvasX = (mathX) => EFFECTIVE_ORIGIN_X + (mathX * scale);
+  const toCanvasY = (mathY) => EFFECTIVE_ORIGIN_Y - (mathY * scale);
+
+
  useEffect(() => {
     if (!isRacing || drawnFormulas.length === 0 || !level) return;
 
@@ -203,8 +311,6 @@ const GameBoard = ({ level, onLevelComplete }) => {
     const activeF = drawnFormulas.find(f => f.id === activeTrackId);
     if (!activeF) return;
     
-    const BASE_SPEED = (level.enginePower || 5) * 0.8; 
-    const GRAVITY_FACTOR = BASE_SPEED * 0.7; 
     const EPSILON = 0.001; 
     
     let currentX = carPos.x; 
@@ -221,6 +327,9 @@ const GameBoard = ({ level, onLevelComplete }) => {
         animationFrameId = requestAnimationFrame(renderLoop);
         return;
       }
+
+      const BASE_SPEED = (level.enginePower || 5) * 0.3 * speedRef.current; 
+      const GRAVITY_FACTOR = BASE_SPEED * 0.7;
 
       let nextX, nextY, mathNextX, mathNextY;
 
@@ -241,14 +350,14 @@ const GameBoard = ({ level, onLevelComplete }) => {
           nextY = mathNextY;
         } 
         else if (activeF.type === 'parametric') {
-          const t_step = BASE_SPEED * 0.01; 
+          const t_step = BASE_SPEED * 0.1;
           const nextT = currentT + t_step;
           nextX = activeF.compiledX.evaluate({ t: nextT });
           nextY = activeF.compiledY.evaluate({ t: nextT });
           currentT = nextT;
         }
 
-        const CAR_HITBOX_RADIUS = 2;
+        const CAR_HITBOX_RADIUS = 3;
 
         const hasCrashed = level.elements.some(el => {
           if (el.type.toLowerCase() === 'obstacle') {
@@ -261,15 +370,15 @@ const GameBoard = ({ level, onLevelComplete }) => {
           cancelAnimationFrame(animationFrameId);
           isPausedRef.current = true;
           
+          const crashX = toCanvasX(currentX);
+          const crashY = toCanvasY(currentY);
+          
           setCarPos({ x: currentX, y: currentY }); 
           
-          setTimeout(() => {
-            alert("Аварія! Ви врізалися в перешкоду.");
-            setIsRacing(false);
-            handleStopRace();
-          }, 50); 
+          setExplosionPosition({ x: crashX, y: crashY });
+          setShowExplosion(true);
           
-          return; 
+          // setCarPos({ x: null, y: null }); 
         }
 
         const dx = nextX - currentX;
@@ -283,16 +392,27 @@ const GameBoard = ({ level, onLevelComplete }) => {
         }
 
         if (activeStarsRef.current.length > 0) {
-          const HIT_RADIUS = 15 / scale; 
           const initialCount = activeStarsRef.current.length;
 
+          const CAR_WIDTH = 6;
+          const CAR_HEIGHT = 1;
+          const STAR_RADIUS = 1;
+
           activeStarsRef.current = activeStarsRef.current.filter(star => {
-            const distToStar = Math.hypot(nextX - star.posX, nextY - star.posY);
-            return distToStar > HIT_RADIUS; 
+            const isCollected = checkStarCollection(
+              nextX, nextY, 
+              currentAngle,
+              CAR_WIDTH, CAR_HEIGHT, 
+              star.posX, star.posY, 
+              STAR_RADIUS
+            );
+
+            return !isCollected; 
           });
 
           if (activeStarsRef.current.length < initialCount) {
             setStarsCollected(totalStars - activeStarsRef.current.length);
+            setDisplayStars([...activeStarsRef.current]);
           }
         }
 
@@ -300,7 +420,7 @@ const GameBoard = ({ level, onLevelComplete }) => {
           const queuedF = drawnFormulas.find(f => f.id === queuedTrackId);
           if (queuedF) {
             
-            const JUMP_HITBOX = 15 / scale; 
+            const JUMP_HITBOX = 2; 
             
             let dist = Infinity;
             let queuedNextT = 0;
@@ -383,31 +503,45 @@ const GameBoard = ({ level, onLevelComplete }) => {
 
         if (nextY > 2000 || nextY < -2000 || nextX > level.finishPosX + 2000 || nextX < level.startPosX - 2000 || currentT > 500) {
           keepRacing = false; setIsRacing(false); handleStopRace();
-          setTimeout(() => alert(`Машинка вилетіла за межі!`), 10);
+          setTimeout(() => showCustomAlert('О ні!','Машинка вилетіла за межі!','error'), 10);
           return; 
         }
 
         const distToFinish = Math.hypot(nextX - level.finishPosX, nextY - level.finishPosY);
         
-        const finishRadius = 15 / scale;
+        const finishRadius = 3;
         
         if (distToFinish <= finishRadius) {
-          if (activeStarsRef.current.length > 0) {
-            keepRacing = false; setIsRacing(false); handleStopRace();
-            setTimeout(() => alert(`Ви доїхали до фінішу, але зібрали не всі зірки! Залишилось: ${activeStarsRef.current.length}.`), 10);
-            return;
-          } else {
-            keepRacing = false; setIsRacing(false); 
-            setCarPos({ x: level.finishPosX, y: level.finishPosY });
+            keepRacing = false; 
+            setIsRacing(false); 
+            //setCarPos({ x: level.finishPosX, y: level.finishPosY });
 
-            setTimeout(() => {
-              alert("Перемога! Всі зірки зібрано!");
-              if (onLevelComplete) {
-                 onLevelComplete(); 
-              }
-            }, 10);
-            return;
-          }
+            const totalStars = level.elements ? level.elements.filter(el => el.type === 'Star').length : 0;
+            const remainingStars = activeStarsRef.current.length;
+            const collectedStarsCount = totalStars - remainingStars;
+
+            const finalTime = (Date.now() - startTimeRef.current) / 1000;
+
+            if (collectedStarsCount === totalStars && totalStars > 0) {
+            showCustomAlert(
+                'Ідеальна перемога!', 
+                'Всі зірки зібрано!', 
+                'success',
+                () => {
+                    if (onLevelComplete) onLevelComplete(finalTime, collectedStarsCount);
+                }
+            );
+        } else {
+            showCustomAlert(
+                'Рівень пройдено!', 
+                `Зібрано зірок: ${collectedStarsCount} з ${totalStars}.`, 
+                'success',
+                () => {
+                    if (onLevelComplete) onLevelComplete(finalTime, collectedStarsCount);
+                }
+            );
+        }
+        return;
         }
 
         currentX = nextX;
@@ -443,7 +577,7 @@ const GameBoard = ({ level, onLevelComplete }) => {
   const handleMouseLeave = () => setIsDragging(false);
 
   return (
-    <div className="game-board-container">
+    <div className="game-board-container" style={{ position: 'relative' }}>
       <ControlPanel 
         formulas={formulas} 
         activeTrackId={activeTrackId}
@@ -458,7 +592,10 @@ const GameBoard = ({ level, onLevelComplete }) => {
         isRacing={isRacing} 
         onStartRace={handleStartRace}
         onStopRace={handleStopRace}
-        onSwitchTrack={handleSwitchTrack} 
+        onSwitchTrack={handleSwitchTrack}
+        speedMultiplier={speedMultiplier} 
+        setSpeedMultiplier={setSpeedMultiplier}
+        onRestart={handleRestart}
       />
       
       <CanvasRenderer 
@@ -468,55 +605,52 @@ const GameBoard = ({ level, onLevelComplete }) => {
         scale={scale}
         offset={offset}
         level={level}
-        activeStars={activeStarsRef.current}
+        //activeStarsRef={activeStarsRef.current}
+        //activeStars={displayStars}
         drawnFormulas={drawnFormulas}
         activeTrackId={activeTrackId}
         carPos={carPos}
         carAngle={carAngle}
+        renderTrigger={renderTrigger}
+        activeStarsRef={activeStarsRef} 
+        renderTrigger={renderTrigger}
+        //speedMultiplier={speedMultiplier}
       />
+      
+      <div style={{ position: 'relative', width: CANVAS_WIDTH, height: CANVAS_HEIGHT, margin: '0 auto' }}>
+        {showExplosion && (
+          <ExplosionManager 
+            position={explosionPosition} 
+            onAnimationEnd={handleExplosionEnd} 
+          />
+        )}
 
-      {crashMessage && (
-        <div style={{
-          position: 'absolute', 
-          top: '20%', 
-          left: '50%', 
-          transform: 'translate(-50%, -50%)',
-          background: 'rgba(244, 67, 54, 0.95)', 
-          color: 'white', 
-          padding: '20px 30px',
-          borderRadius: '10px', 
-          fontSize: '20px', 
-          fontWeight: 'bold', 
-          zIndex: 100,
-          boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-          textAlign: 'center',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '15px'
-        }}>
-          <div>{crashMessage}</div>
-          <button 
-            onClick={() => {
-              isPausedRef.current = false;
-              setCrashMessage(null);
-            }}
-            style={{
-              padding: '10px 20px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: '#F44336',
-              background: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-            }}
-          >
-            Продовжити рух
-          </button>
-        </div>
-      )}
+      {isCrashed && (
+          <div style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.7)', 
+            display: 'flex', flexDirection: 'column',
+            justifyContent: 'center', alignItems: 'center', 
+            zIndex: 100, borderRadius: '10px'
+          }}>
+            <h2 style={{ color: '#ff4c4c', fontSize: '48px', textShadow: '2px 2px 0 #000', margin: '0 0 20px 0' }}>
+              💥 Аварія! 💥
+            </h2>
+            <button
+              onClick={handleRestartAfterCrash}
+              style={{ 
+                padding: '15px 30px', fontSize: '20px', fontWeight: 'bold',
+                backgroundColor: '#FF9800', color: 'white', border: 'none', 
+                borderRadius: '10px', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+                transition: 'transform 0.1s'
+              }}
+              onMouseDown={e => e.currentTarget.style.transform = 'scale(0.95)'}
+              onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              🔄 Спробувати ще раз
+            </button>
+          </div>
+        )}
 
       <canvas 
         ref={canvasRef} 
@@ -527,6 +661,15 @@ const GameBoard = ({ level, onLevelComplete }) => {
         onMouseUp={handleMouseUp} 
         onMouseLeave={handleMouseLeave}
         className={`game-canvas ${isDragging ? 'grabbing' : 'grab'}`} 
+      />
+      </div>
+
+    <AlertModal 
+        isOpen={modalConfig.isOpen}
+        title={modalConfig.title}
+        message={modalConfig.message}
+        type={modalConfig.type}
+        onClose={closeCustomAlert}
       />
     </div>
   );

@@ -82,12 +82,14 @@
 .btn-add { background-color: #9E9E9E; }
 .btn-draw { background-color: #2196F3; }
 .btn-start { background-color: #4CAF50; }
+.btn-restart{ background-color: #F44336;; }
 .btn-stop { background-color: #F44336; }
 
 .btn-switch {
   background-color: #FF9800;
   font-weight: bold;
 }
+
 
 .btn-switch.queued {
   background-color: #FFC107;

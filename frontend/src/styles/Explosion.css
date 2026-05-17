@@ -1,0 +1,87 @@
+.explosion-flash {
+  position: absolute;
+  top: -100px; left: -100px;
+  width: 200px; height: 200px;
+  background: radial-gradient(circle, rgba(255,255,255,0.9) 10%, rgba(255,255,255,0) 70%);
+  border-radius: 50%;
+  animation: flash-anim 0.2s ease-out forwards;
+}
+
+@keyframes flash-anim {
+  0% { transform: scale(0.2); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+.explosion-fireball {
+  position: absolute;
+  top: calc(-1 * var(--fsize) / 2);
+  left: calc(-1 * var(--fsize) / 2);
+  width: var(--fsize);
+  height: var(--fsize);
+  border-radius: 50%;
+  
+  box-shadow: 0 0 20px #ff9800, inset 0 0 20px #f44336;
+  opacity: 0;
+  animation: fireball-anim 0.9s ease-out forwards;
+  animation-delay: var(--fdelay);
+}
+
+@keyframes fireball-anim {
+  0% {
+    opacity: 1;
+    transform: translate(var(--fx), var(--fy)) scale(0.1);
+    background: #fff9c4;
+    box-shadow: 0 0 40px #ffeb3b, inset 0 0 10px #ff9800;
+  }
+  20% {
+    background: #ff9800;
+    box-shadow: 0 0 50px #f44336, inset 0 0 20px #d32f2f;
+  }
+  50% {
+    background: #d32f2f;
+    box-shadow: 0 0 20px #212121, inset 0 0 10px #000;
+  }
+  75% {
+     background: #424242;
+     box-shadow: none;
+     transform: translate(calc(var(--fx) * 1.5), calc(var(--fy) * 1.5 - 30px)) scale(1.5);
+     opacity: 0.8;
+  }
+  100% {
+     background: #212121;
+     transform: translate(calc(var(--fx) * 2), calc(var(--fy) * 2 - 60px)) scale(2);
+     opacity: 0;
+  }
+}
+
+.explosion-spark {
+  position: absolute;
+  top: -2px; left: -2px;
+  height: 4px;
+  width: var(--size);
+  background-color: #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 0 10px #ffeb3b, 0 0 20px #ff9800;
+  
+  transform-origin: left center; 
+  opacity: 0;
+  animation: spark-anim 0.7s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+  animation-delay: var(--delay);
+}
+
+@keyframes spark-anim {
+  0% {
+    opacity: 1;
+    width: 5px;
+    transform: rotate(var(--rot)) translate(0, 0);
+  }
+  30% {
+     opacity: 1;
+     width: 40px;
+  }
+  100% {
+    opacity: 0;
+    width: 10px;
+    transform: rotate(var(--rot)) translate(var(--tx), 0);
+  }
+}

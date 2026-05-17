@@ -3,7 +3,8 @@ import '../styles/ControlPanel.css';
 const ControlPanel = ({ 
   formulas, activeTrackId, queuedTrackId, onFormulaChange, onFormulaTypeChange, 
   onAddFormula, onRemoveFormula, onDrawClick, error, isReady, isRacing, 
-  onStartRace, onStopRace, onSwitchTrack 
+  onStartRace, onStopRace, onSwitchTrack, speedMultiplier, 
+  setSpeedMultiplier, onRestart
 }) => {
   
   const currentParametric = formulas.filter(f => f.type === 'parametric').length;
@@ -108,11 +109,34 @@ const ControlPanel = ({
             Поїхали!
           </button>
         )}
+        {/* 
         {isRacing && (
           <button onClick={onStopRace} className="btn btn-text btn-stop">
             Зупинити
           </button>
-        )}
+        )} 
+        */}
+        <button 
+          onClick={onRestart} 
+          className="btn btn-text btn-restart"
+          title="Почати рівень спочатку">
+            Почати спочатку
+          </button>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+        <label style={{ fontWeight: 'bold', color: '#d8d5d5' }}>
+          Швидкість: {speedMultiplier}x
+        </label>
+        <input 
+          type="range" 
+          min="0.5" 
+          max="2" 
+          step="0.1" 
+          value={speedMultiplier} 
+          onChange={(e) => setSpeedMultiplier(parseFloat(e.target.value))} 
+          style={{ cursor: 'pointer' }}
+        />
       </div>
 
       {error && <div className="error-msg">{error}</div>}

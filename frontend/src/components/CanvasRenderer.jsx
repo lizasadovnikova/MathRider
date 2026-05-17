@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const CanvasRenderer = ({
   canvasRef,
@@ -11,16 +11,45 @@ const CanvasRenderer = ({
   activeTrackId,
   carPos,
   carAngle,
-  activeStars
+  activeStars,
+  renderTrigger,
+  activeStarsRef
+  //speedMultiplier = 1
 }) => {
   const ORIGIN_X = CANVAS_WIDTH / 2;
   const ORIGIN_Y = CANVAS_HEIGHT / 2;
 
   const EFFECTIVE_ORIGIN_X = ORIGIN_X + offset.x;
   const EFFECTIVE_ORIGIN_Y = ORIGIN_Y + offset.y;
+
+  const [assetsLoaded, setAssetsLoaded] = useState(0);
   
   const toCanvasX = (mathX) => EFFECTIVE_ORIGIN_X + (mathX * scale);
   const toCanvasY = (mathY) => EFFECTIVE_ORIGIN_Y - (mathY * scale);
+  
+  const carImgRef = useRef(new Image());
+  const starImgRef = useRef(new Image());
+  const finishImgRef = useRef(new Image());
+  const startImgRef = useRef(new Image());
+  const obstacleImgRef = useRef(new Image());
+
+  useEffect(() => {
+    const handleImageLoad = () => {
+      setAssetsLoaded(prev => prev + 1); 
+    };
+
+    startImgRef.current.onload = handleImageLoad;
+    finishImgRef.current.onload = handleImageLoad;
+    obstacleImgRef.current.onload = handleImageLoad;
+    starImgRef.current.onload = handleImageLoad;
+    carImgRef.current.onload = handleImageLoad;
+
+    startImgRef.current.src = '/assets/start.png';
+    finishImgRef.current.src = '/assets/finish.png';
+    obstacleImgRef.current.src = '/assets/obstacle.png';
+    starImgRef.current.src = '/assets/star.png';
+    carImgRef.current.src = '/assets/car.png';
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -105,79 +134,121 @@ const CanvasRenderer = ({
       });
     }
 
+    const startSize = 10 * scale;
+    const finishSize = 10 * scale;
+    const starSize = 5 * scale;
+
     // старт
-    ctx.fillStyle = '#4CAF50'; 
-    ctx.beginPath(); 
-    ctx.arc(toCanvasX(level.startPosX), toCanvasY(level.startPosY), 20, 0, Math.PI * 2); 
-    ctx.fill();
+    const startVisualOffsetY = -3 * scale;
+    const startScreenY = toCanvasY(level.startPosY) - startVisualOffsetY;
+
+    if (startImgRef.current.complete && startImgRef.current.naturalWidth > 0) {
+      ctx.drawImage(
+        startImgRef.current, 
+        toCanvasX(level.startPosX) - startSize / 2, 
+        startScreenY - startSize / 2, 
+        startSize, 
+        startSize
+      );
+    } else {
+      ctx.fillStyle = '#4CAF50'; 
+      ctx.beginPath(); 
+      ctx.arc(toCanvasX(level.startPosX), startScreenY, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // фініш
-    ctx.fillStyle = '#F44336'; 
-    ctx.beginPath(); 
-    ctx.arc(toCanvasX(level.finishPosX), toCanvasY(level.finishPosY), 20, 0, Math.PI * 2); 
-    ctx.fill();
+    const finishVisualOffsetY = 4.7 * scale;
+    const finishScreenY = toCanvasY(level.finishPosY) - finishVisualOffsetY;
 
-    const drawRotatedRect = (ctx, mathX, mathY, mathW, mathH, angle, color) => {
+    if (finishImgRef.current.complete && finishImgRef.current.naturalWidth > 0) {
+      ctx.drawImage(
+        finishImgRef.current, 
+        toCanvasX(level.finishPosX) - finishSize / 2, 
+        finishScreenY - finishSize / 2, 
+        finishSize, 
+        finishSize
+      );
+    } else {
+      ctx.fillStyle = '#F44336'; 
+      ctx.beginPath(); 
+      ctx.arc(toCanvasX(level.finishPosX), finishScreenY, 20, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const drawRotatedImageRect = (ctx, mathX, mathY, mathW, mathH, angle) => {
       ctx.save();
-      ctx.fillStyle = color;
-
       const mathCenterX = mathX + mathW / 2;
       const mathCenterY = mathY + mathH / 2; 
       const screenCenterX = toCanvasX(mathCenterX);
       const screenCenterY = toCanvasY(mathCenterY);
+      
       const screenW = mathW * scale;
       const screenH = mathH * scale;
 
       ctx.translate(screenCenterX, screenCenterY);
       ctx.rotate(((angle || 0) * Math.PI) / 180);
-      ctx.fillRect(-screenW / 2, -screenH / 2, screenW, screenH);
       
+      if (obstacleImgRef.current.complete && obstacleImgRef.current.naturalWidth > 0) {
+        ctx.drawImage(obstacleImgRef.current, -screenW / 2, -screenH / 2, screenW, screenH);
+      } else {
+        ctx.fillStyle = '#795548';
+        ctx.fillRect(-screenW / 2, -screenH / 2, screenW, screenH);
+      }
       ctx.restore();
     };
 
-    // елементи
+    // перешкода
     if (level.elements) {
         level.elements.forEach(el => {
           if (el.type !== 'Star') {
-            drawRotatedRect(ctx, el.posX, el.posY, el.width, el.height, el.angle, '#795548');
+            drawRotatedImageRect(ctx, el.posX, el.posY, el.width, el.height, el.angle);
           }
         });
     }
 
-    if (activeStars) {
-        activeStars.forEach(star => {
+    // зірка
+    const starsToDraw = activeStarsRef?.current || []; 
+    
+    if (starsToDraw.length > 0) {
+        starsToDraw.forEach(star => {
           const screenX = toCanvasX(star.posX);
           const screenY = toCanvasY(star.posY);
           
-          ctx.font = '30px Arial';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('⭐', screenX, screenY);
+          if (starImgRef.current.complete && starImgRef.current.naturalWidth > 0) {
+            ctx.drawImage(starImgRef.current, screenX - starSize / 2, screenY - starSize / 2, starSize, starSize);
+          } else {
+            ctx.font = `${starSize}px Arial`; 
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('⭐', screenX, screenY);
+          }
         });
     }
 
-    ctx.font = '30px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'bottom';
-
     // машинка
-    if (carPos.x !== null && carPos.y !== null) {
+   if (carPos.x !== null && carPos.y !== null) {
       ctx.save();
-      
-      ctx.translate(toCanvasX(carPos.x), toCanvasY(carPos.y));
+      ctx.translate(toCanvasX(carPos.x), toCanvasY(carPos.y)); 
       ctx.rotate(carAngle);
       
-      ctx.font = '30px Arial';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      ctx.fillStyle = '#d7801c';
-      ctx.fillText('=>', 0, 0); 
-      
+      const carW = 10 * scale; 
+      const carH = 10 * scale; 
+      const carVisualOffsetY = 1.98 * scale;
+
+      if (carImgRef.current.complete && carImgRef.current.naturalWidth > 0) {
+        ctx.drawImage(carImgRef.current, -carW / 2, (-carH / 2) - carVisualOffsetY, carW, carH);
+      } else {
+        ctx.font = '30px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#d7801c';
+        ctx.fillText('=>', 0, -carVisualOffsetY); 
+      }
       ctx.restore();
     }
 
-  }, [level, drawnFormulas, activeStars, scale, offset, carPos, activeTrackId, carAngle, CANVAS_WIDTH, CANVAS_HEIGHT]);
+  }, [level, drawnFormulas, activeStarsRef, scale, offset, carPos, activeTrackId, carAngle, CANVAS_WIDTH, CANVAS_HEIGHT, assetsLoaded, renderTrigger]);
   return null;
 };
 

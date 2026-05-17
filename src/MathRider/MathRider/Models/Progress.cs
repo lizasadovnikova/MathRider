@@ -9,5 +9,6 @@
         public Level? Level { get; set; } 
         public float BestTime { get; set; }
         public int StarsCollected { get; set; }
+        public bool IsCompleted { get; set; }
     }
 }

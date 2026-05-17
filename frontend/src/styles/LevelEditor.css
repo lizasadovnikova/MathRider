@@ -1,0 +1,212 @@
+.editor-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.header-panel {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.btn-back {
+  padding: 8px 15px;
+  cursor: pointer;
+}
+
+.title-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.level-name-input {
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  padding: 5px;
+}
+
+.category-select {
+  padding: 2px 5px;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.difficulty-container {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.difficulty-badge {
+  background: #eee;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+}
+
+.difficulty-value {
+  margin-left: 5px;
+}
+
+.diff-low { color: green; }
+.diff-med { color: orange; }
+.diff-high { color: red; }
+
+.action-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-test {
+  padding: 10px 20px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-stop-test {
+  padding: 10px 15px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.header-spacer {
+  width: 150px;
+}
+
+.btn-save {
+  padding: 10px 20px;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.btn-save.cleared {
+  background-color: #4CAF50;
+  cursor: pointer;
+}
+
+.btn-save.locked {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.toolbar {
+  margin-bottom: 10px;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.toolbar-label {
+  font-weight: bold;
+}
+
+.btn-tool {
+  background-color: #eee;
+  border: 1px solid #ccc;
+  padding: 5px 10px;
+  cursor: pointer;
+  color: black;
+}
+
+.btn-tool.start-active { background-color: #b3e5fc; }
+.btn-tool.finish-active { background-color: #c8e6c9; }
+.btn-tool.star-active { background-color: gold; }
+.btn-tool.obstacle-active { background-color: #f44336; color: white; }
+
+.toolbar-subgroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-left: 10px;
+  border-left: 2px solid #ccc;
+}
+
+.obstacle-inputs {
+  display: flex;
+  gap: 5px;
+  font-size: 14px;
+  align-items: center;
+}
+
+.input-small { width: 45px; }
+.input-medium { width: 50px; }
+
+.toolbar-subgroup-modes {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding-left: 20px;
+  border-left: 2px solid #ccc;
+}
+
+.mode-select {
+  padding: 5px;
+  border-radius: 4px;
+}
+
+.coords-inputs {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.input-coord { width: 60px; }
+
+.btn-place {
+  padding: 5px 15px;
+  background-color: #2196F3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.btn-clear {
+  margin-left: auto;
+  background-color: #ffebee;
+  color: red;
+  border: 1px solid red;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.error-message {
+  min-height: 24px;
+  color: red;
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+.editor-canvas {
+  border: 2px solid #333;
+  display: block;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
