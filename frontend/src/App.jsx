@@ -4,6 +4,7 @@ import GameBoard from './components/GameBoard.jsx';
 import Login from './components/Login.jsx';
 import LevelEditor from './components/LevelEditor.jsx';
 import Register from './components/Register.jsx';
+import CreditsModal from './components/CreditsModal';
 import './styles/App.css';
 
 function App() {
@@ -23,6 +24,8 @@ function App() {
   const [filterDifficulty, setFilterDifficulty] = useState('all');
   const [filterCategory, setFilterCategory] = useState('all');
   const [userProgress, setUserProgress] = useState([]);
+
+  const [isCreditsOpen, setIsCreditsOpen] = useState(false);
 
   const fetchProgress = () => {
     const token = localStorage.getItem('mathRider_token');
@@ -152,6 +155,18 @@ function App() {
 
   return (
     <div className="app-container">
+      <div className="game-info-panel">
+        <button
+          onClick={() => setIsCreditsOpen(true)}
+          style={{ padding: '8px', cursor: 'pointer' }}
+        >
+          Про гру
+        </button>
+         <CreditsModal 
+          isOpen={isCreditsOpen} 
+          onClose={() => setIsCreditsOpen(false)} 
+        />
+      </div>
       
       {isAuthenticated && (
         <div className="user-info-panel">

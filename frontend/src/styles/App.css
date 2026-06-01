@@ -9,6 +9,12 @@
   margin-bottom: -40px;
 }
 
+.game-info-panel {
+  text-align: left;
+  margin-bottom: -40px;
+}
+
+
 .btn-logout {
   margin-left: 10px;
   cursor: pointer;

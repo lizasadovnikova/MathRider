@@ -605,8 +605,6 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
         scale={scale}
         offset={offset}
         level={level}
-        //activeStarsRef={activeStarsRef.current}
-        //activeStars={displayStars}
         drawnFormulas={drawnFormulas}
         activeTrackId={activeTrackId}
         carPos={carPos}
@@ -614,7 +612,6 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
         renderTrigger={renderTrigger}
         activeStarsRef={activeStarsRef} 
         renderTrigger={renderTrigger}
-        //speedMultiplier={speedMultiplier}
       />
       
       <div style={{ position: 'relative', width: CANVAS_WIDTH, height: CANVAS_HEIGHT, margin: '0 auto' }}>
