@@ -63,7 +63,6 @@ const GameBoard = ({ level, onLevelComplete }) => {
   const [carT, setCarT] = useState(0); 
   const [isRacing, setIsRacing] = useState(false); 
   const [carAngle, setCarAngle] = useState(0); 
-  const [crashMessage, setCrashMessage] = useState(null);
   const [isCrashed, setIsCrashed] = useState(false);
 
   const [showExplosion, setShowExplosion] = useState(false);
@@ -91,25 +90,22 @@ const GameBoard = ({ level, onLevelComplete }) => {
   
   const speedRef = useRef(speedMultiplier);
 
+  const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, starY, starRadius) => {
+    const dx = starX - carX;
+    const dy = starY - carY;
 
-const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, starY, starRadius) => {
-  const dx = starX - carX;
-  const dy = starY - carY;
+    const localX = dx * Math.cos(-angleRad) - dy * Math.sin(-angleRad);
+    const localY = dx * Math.sin(-angleRad) + dy * Math.cos(-angleRad);
 
-  const localX = dx * Math.cos(-angleRad) - dy * Math.sin(-angleRad);
-  const localY = dx * Math.sin(-angleRad) + dy * Math.cos(-angleRad);
+    const isWithinX = Math.abs(localX) <= (carWidth / 2 + starRadius);
+    const isWithinY = Math.abs(localY) <= (carHeight + starRadius);
 
-  const isWithinX = Math.abs(localX) <= (carWidth / 2 + starRadius);
-
-  const isWithinY = Math.abs(localY) <= (carHeight + starRadius);
-
-  return isWithinX && isWithinY;
-};
+    return isWithinX && isWithinY;
+  };
 
   useEffect(() => {
     speedRef.current = speedMultiplier;
   }, [speedMultiplier]);
-
 
   useEffect(() => {
     if (level) {
@@ -146,12 +142,12 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
 
   const handleRestart = () => {
     if (!level) return;
-    //isPausedRef.current = true;
     setIsRacing(false);
     setCarPos({ x: level.startPosX, y: level.startPosY });
     setCarAngle(0); 
     const initialStars = level.elements.filter(el => el.type === 'Star');
     if (activeStarsRef) activeStarsRef.current = [...initialStars];
+    setDisplayStars([...initialStars]);
     setStarsCollected(0); 
     setRenderTrigger(prev => prev + 1); 
     isPausedRef.current = false;
@@ -250,7 +246,6 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
     setCarT(0); 
     setCarAngle(0); 
     setQueuedTrackId(null); 
-    setCrashMessage(null);
     isPausedRef.current = false;
     setIsRacing(true);
     startTimeRef.current = Date.now();
@@ -262,7 +257,6 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
     setCarT(0); 
     setCarAngle(0); 
     setQueuedTrackId(null); 
-    setCrashMessage(null);
     isPausedRef.current = false;
   };
 
@@ -279,19 +273,10 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
 
     if (level && level.elements) {
       const initialStars = level.elements.filter(e => e.type === 'Star');
-      setActiveStars(initialStars);
+      activeStarsRef.current = [...initialStars];
+      setDisplayStars([...initialStars]);
     }
   };
-
-  const restartLevel = () => {
-    setIsCrashed(false);
-    
-    setCarPos({ x: level.startPosX, y: level.startPosY });
-    
-    const initialStars = level.elements ? level.elements.filter(e => e.type === 'Star') : [];
-    setActiveStars(initialStars);
-  };
-
 
   const ORIGIN_X = CANVAS_WIDTH / 2;
   const ORIGIN_Y = CANVAS_HEIGHT / 2;
@@ -301,8 +286,7 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
   const toCanvasX = (mathX) => EFFECTIVE_ORIGIN_X + (mathX * scale);
   const toCanvasY = (mathY) => EFFECTIVE_ORIGIN_Y - (mathY * scale);
 
-
- useEffect(() => {
+  useEffect(() => {
     if (!isRacing || drawnFormulas.length === 0 || !level) return;
 
     let animationFrameId;
@@ -377,8 +361,6 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
           
           setExplosionPosition({ x: crashX, y: crashY });
           setShowExplosion(true);
-          
-          // setCarPos({ x: null, y: null }); 
         }
 
         const dx = nextX - currentX;
@@ -420,7 +402,7 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
           const queuedF = drawnFormulas.find(f => f.id === queuedTrackId);
           if (queuedF) {
             
-            const JUMP_HITBOX = 2; 
+            const JUMP_HITBOX = 3; 
             
             let dist = Infinity;
             let queuedNextT = 0;
@@ -436,13 +418,19 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
               }
             } else if (queuedF.type === 'parametric') {
               let minDistSq = Infinity;
-              for (let t = 0; t <= 300; t += 0.05) {
-              try {
-                const px = queuedF.compiledX.evaluate({ t });
-                const py = queuedF.compiledY.evaluate({ t });
-                
-                if (isNaN(px) || isNaN(py)) {
-                }
+              let mathErrorMsg = null;
+
+              for (let t = -50; t <= 300; t += 0.2) {
+                try {
+                  const scope = { t: t };
+                  let px = queuedF.compiledX.evaluate(scope);
+                  let py = queuedF.compiledY.evaluate(scope);
+                  
+                  if (typeof px === 'function' || typeof py === 'function' || isNaN(px) || isNaN(py)) {
+                    mathErrorMsg = "Формула розпізнана як текст/функція, а не число. Перевірте, чи немає ком замість крапок.";
+                    break;
+                  }
+
                   const deltaX = px - nextX;
                   const deltaY = py - nextY;
                   const dSq = deltaX * deltaX + deltaY * deltaY;
@@ -450,8 +438,21 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
                     minDistSq = dSq; 
                     queuedNextT = t; 
                   }
-                } catch (e) {}
+                } catch (e) {
+                  mathErrorMsg = `Синтаксична помилка: ${e.message}`;
+                  break;
+                }
               }
+
+              if (mathErrorMsg) {
+                cancelAnimationFrame(animationFrameId);
+                isPausedRef.current = true;
+                setQueuedTrackId(null);
+                setIsRacing(false);
+                setTimeout(() => showCustomAlert('Помилка розрахунку траси!', mathErrorMsg, 'error'), 10);
+                return;
+              }
+
               dist = Math.sqrt(minDistSq);
             }
 
@@ -480,9 +481,16 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
               if (angleDiff > MAX_ANGLE_RAD) {
                 const degrees = (angleDiff * 180 / Math.PI).toFixed(0);
                 
+                cancelAnimationFrame(animationFrameId);
                 isPausedRef.current = true;
                 setQueuedTrackId(null);
-                setCrashMessage(`Стрибок відхилено! Кут занадто різкий (${degrees}° > ${MAX_ANGLE_DEG}).`);
+                setIsRacing(false);
+                
+                setTimeout(() => showCustomAlert(
+                  'Стрибок відхилено!', 
+                  `Кут занадто різкий (${degrees}° > ${MAX_ANGLE_DEG}°)!`, 
+                  'error'
+                ), 10);
                 
               } else {
                 setQueuedTrackId(null);
@@ -508,38 +516,31 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
         }
 
         const distToFinish = Math.hypot(nextX - level.finishPosX, nextY - level.finishPosY);
-        
         const finishRadius = 3;
         
         if (distToFinish <= finishRadius) {
             keepRacing = false; 
             setIsRacing(false); 
-            //setCarPos({ x: level.finishPosX, y: level.finishPosY });
 
             const totalStars = level.elements ? level.elements.filter(el => el.type === 'Star').length : 0;
             const remainingStars = activeStarsRef.current.length;
             const collectedStarsCount = totalStars - remainingStars;
-
             const finalTime = (Date.now() - startTimeRef.current) / 1000;
 
             if (collectedStarsCount === totalStars && totalStars > 0) {
-            showCustomAlert(
+            setTimeout(() => showCustomAlert(
                 'Ідеальна перемога!', 
                 'Всі зірки зібрано!', 
                 'success',
-                () => {
-                    if (onLevelComplete) onLevelComplete(finalTime, collectedStarsCount);
-                }
-            );
+                () => { if (onLevelComplete) onLevelComplete(finalTime, collectedStarsCount); }
+            ), 10);
         } else {
-            showCustomAlert(
+            setTimeout(() => showCustomAlert(
                 'Рівень пройдено!', 
                 `Зібрано зірок: ${collectedStarsCount} з ${totalStars}.`, 
                 'success',
-                () => {
-                    if (onLevelComplete) onLevelComplete(finalTime, collectedStarsCount);
-                }
-            );
+                () => { if (onLevelComplete) onLevelComplete(finalTime, collectedStarsCount); }
+            ), 10);
         }
         return;
         }
@@ -611,7 +612,7 @@ const checkStarCollection = (carX, carY, angleRad, carWidth, carHeight, starX, s
         carAngle={carAngle}
         renderTrigger={renderTrigger}
         activeStarsRef={activeStarsRef} 
-        renderTrigger={renderTrigger}
+        displayStars={displayStars}
       />
       
       <div style={{ position: 'relative', width: CANVAS_WIDTH, height: CANVAS_HEIGHT, margin: '0 auto' }}>
